@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 public class Device_Screen_Off extends BroadcastReceiver {
 
@@ -23,10 +24,13 @@ public class Device_Screen_Off extends BroadcastReceiver {
         if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
             // do whatever you need to do here
             Log.d("DEVICESTATUS", "LOCKED");
+            Toast.makeText(context, "Screenoff", Toast.LENGTH_SHORT).show();
 
         } else if (intent.getAction().equals(Intent.ACTION_SCREEN_ON)) {
             // and do whatever you need to do here
             Log.d("DEVICESTATUS", "Unlocked");
+            Toast.makeText(context, "ScreenON", Toast.LENGTH_SHORT).show();
+
         }
 
 
