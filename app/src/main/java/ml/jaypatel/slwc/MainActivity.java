@@ -1,29 +1,23 @@
 package ml.jaypatel.slwc;
 
-import android.Manifest;
 import android.app.WallpaperManager;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 
 import com.nostra13.universalimageloader.cache.disc.naming.HashCodeFileNameGenerator;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.assist.ImageSize;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 import com.nostra13.universalimageloader.core.decode.BaseImageDecoder;
 import com.nostra13.universalimageloader.core.display.SimpleBitmapDisplayer;
 import com.nostra13.universalimageloader.core.download.BaseImageDownloader;
 import com.nostra13.universalimageloader.core.download.ImageDownloader;
-import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 import com.nostra13.universalimageloader.utils.IoUtils;
 import com.nostra13.universalimageloader.utils.StorageUtils;
 
@@ -38,7 +32,6 @@ import java.util.List;
 import java.util.Random;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import ml.jaypatel.slwc.PexelData.POJO;
 import ml.jaypatel.slwc.PexelData.Photo;
 import ml.jaypatel.slwc.Retrofit.ApiInterface;
@@ -114,70 +107,82 @@ public class MainActivity extends AppCompatActivity {
         Call<POJO> call2 = pexelservice.getPexel();
 
 
-            // Permission is not granted
-            call2.enqueue(new Callback<POJO>() {
-                @Override
-                public void onResponse(Call<POJO> call, Response<POJO> response) {
-                    final Random r = new Random();
-                    List<Photo> photosList = response.body().getPhotos();
-                    Log.d("photolist.size", String.valueOf(photosList.size()));
+        // Permission is not granted
+        call2.enqueue(new Callback<POJO>() {
+            @Override
+            public void onResponse(Call<POJO> call, Response<POJO> response) {
+                final Random r = new Random();
+                List<Photo> photosList = response.body().getPhotos();
+                Log.d("photolist.size", String.valueOf(photosList.size()));
 //                image = response.body().getPhotos().get(r.nextInt(39) + 1).getSrc().getPortrait();
 ////                Log.d("error:", response.errorBody() + "\t");
 //                Picasso.with(getApplicationContext()).load(image).into(imgview);
 //                Log.e("imagelink:", '"' + response.body().getPhotos().get(0).getSrc().getPortrait() + '"');
-                    downloadImages(response.body().getPhotos().get(r.nextInt(39) + 1).getSrc().getPortrait());
-                }
+                downloadImages(response.body().getPhotos().get(r.nextInt(39) + 1).getSrc().getPortrait());
+            }
 
-                @Override
-                public void onFailure(Call<POJO> call, Throwable t) {
-                    Log.e("Failed:", "error log for pexel request:" + t);
-                }
-            });
+            @Override
+            public void onFailure(Call<POJO> call, Throwable t) {
+                Log.e("Failed:", "error log for pexel request:" + t);
+            }
+        });
 
 
     }
 
-    private void downloadImages(String url) {
+    private void downloadImages(final String url) {
         // Dowloading the 30 Images daily
-        String imageUrl = url;
 
-        File fileForImage = new File(getFilesDir()+"images");
+        Thread thread = new Thread(new Runnable() {
 
-        InputStream sourceStream = null;
-        File cachedImage = ImageLoader.getInstance().getDiscCache().get(imageUrl);
-        if (cachedImage != null && cachedImage.exists()) { // if image was cached by UIL
-            try {
-                sourceStream = new FileInputStream(cachedImage);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-        } else { // otherwise - download image
-            ImageDownloader downloader = new BaseImageDownloader(getApplicationContext());
-            try {
-                sourceStream = downloader.getStream(imageUrl, null);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        try {
-            if (sourceStream != null) {
+            @Override
+            public void run() {
                 try {
-                    OutputStream targetStream = new FileOutputStream(fileForImage);
-                    try {
-                        IoUtils.copyStream(sourceStream, targetStream, null);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } finally {
-                        targetStream.close();
+                    File fileForImage = new File(getFilesDir() + "/images");
+                    Log.d("filename:", fileForImage.getAbsolutePath());
+                    InputStream sourceStream = null;
+                    File cachedImage = ImageLoader.getInstance().getDiscCache().get(url);
+                    if (cachedImage != null && cachedImage.exists()) { // if image was cached by UIL
+                        try {
+                            sourceStream = new FileInputStream(cachedImage);
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    } else { // otherwise - download image
+                        ImageDownloader downloader = new BaseImageDownloader(getApplicationContext());
+                        try {
+                            sourceStream = downloader.getStream(url, null);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
-                } finally {
-                    sourceStream.close();
+
+                    try {
+                        if (sourceStream != null) {
+                            try {
+                                OutputStream targetStream = new FileOutputStream(fileForImage);
+                                try {
+                                    IoUtils.copyStream(sourceStream, targetStream, null);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                } finally {
+                                    targetStream.close();
+                                }
+                            } finally {
+                                sourceStream.close();
+                            }
+                        }
+                    } catch (IOException io) {
+                        io.printStackTrace();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-        } catch (IOException io) {
-            io.printStackTrace();
-        }
+        });
+
+        thread.start();
+
     }
 
 
